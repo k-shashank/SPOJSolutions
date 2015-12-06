@@ -6,181 +6,124 @@
 #include <utility>
 #include <map>
 #include <cmath>
+#include <stack>
+#include <queue>
+#include <cstring>
+#include <set>
+#define s(n) scanf("%lld",&n)
+#define p(n) printf("%lld\n",n)
+#define f(a,b,c) for(int a=b;a<c;a++)
+#define ll long long int
+#define z(a,n) for(int i=0;i<n;i++)a[i]=0;
+#define MAX 2000000000
 using namespace std;
-typedef pair<int,int> mypair;
-int max(int a,int b){
-	return (a>b)?a:b;
+ll maxi(ll a,ll b){
+    return (a>b)?a:b;
 }
-int min(int a,int b){
-	return (a<b)?a:b;
+ll mini(ll a,ll b){
+    return (a<b)?a:b;
 }
-/*int calculate(int x,int y,int* a){
-	int max1=a[x],sum=a[x];
-	for (int i = x+1; i <= y; ++i)
-	{
-		sum=max(a[i],sum+a[i]);
-		if(sum>max1)max1=sum;
-	}
-	return max1;
-}
+
+struct SegmentTreeNode {
+    int prefixMaxSum, suffixMaxSum, maxSum, sum;
+    
+    void assignLeaf(int value) {
+        prefixMaxSum = suffixMaxSum = maxSum = sum = value;
+    }
+    
+    void merge(SegmentTreeNode& left, SegmentTreeNode& right) {
+        sum = left.sum + right.sum;
+        prefixMaxSum = max(left.prefixMaxSum, left.sum + right.prefixMaxSum);
+        suffixMaxSum = max(right.suffixMaxSum, right.sum + left.suffixMaxSum);
+        maxSum = max(prefixMaxSum, max(suffixMaxSum, max(left.maxSum, max(right.maxSum, left.suffixMaxSum + right.prefixMaxSum))));
+    }
+    
+    int getValue() {
+        return maxSum;
+    }
+};
+
+template<class T, class V>
+class SegmentTree {
+    SegmentTreeNode* nodes;
+    int N;
+    
+public:
+    SegmentTree(T arr[], int N) {
+        this->N = N;
+        nodes = new SegmentTreeNode[getSegmentTreeSize(N)];
+        buildTree(arr, 1, 0, N-1);
+    }
+    
+    ~SegmentTree() {
+        delete[] nodes;
+    }
+    
+    V getValue(int lo, int hi) {
+        SegmentTreeNode result = getValue(1, 0, N-1, lo, hi);
+        return result.getValue();
+    }
+    
+    void update(int index, T value) {
+        update(1, 0, N-1, index, value);
+    }
+    
+private:    
+    void buildTree(T arr[], int stIndex, int lo, int hi) {
+        if (lo == hi) {
+            nodes[stIndex].assignLeaf(arr[lo]);
+            return;
+        }
+        int left = 2 * stIndex, right = left + 1, mid = (lo + hi) / 2;
+        buildTree(arr, left, lo, mid);
+        buildTree(arr, right, mid + 1, hi);
+        nodes[stIndex].merge(nodes[left], nodes[right]);
+    }
+    
+    SegmentTreeNode getValue(int stIndex, int left, int right, int lo, int hi) {
+        if (left == lo && right == hi)return nodes[stIndex];
+        int mid = (left + right) / 2;
+        if (lo > mid)return getValue(2*stIndex+1, mid+1, right, lo, hi);
+        if (hi <= mid)return getValue(2*stIndex, left, mid, lo, hi);
+        SegmentTreeNode leftResult = getValue(2*stIndex, left, mid, lo, mid);
+        SegmentTreeNode rightResult = getValue(2*stIndex+1, mid+1, right, mid+1, hi);
+        SegmentTreeNode result;
+        result.merge(leftResult, rightResult);
+        return result;
+    }
+    
+    int getSegmentTreeSize(int N) {
+        int size = 1;
+        for (; size < N; size <<= 1);
+        return size << 1;
+    }
+    
+    void update(int stIndex, int lo, int hi, int index, T value) {
+        if (lo == hi) {
+            nodes[stIndex].assignLeaf(value);
+            return;
+        }
+        int left = 2 * stIndex, right = left + 1, mid = (lo + hi) / 2;
+        if (index <= mid)update(left, lo, mid, index, value);
+        else update(right, mid+1, hi, index, value);
+        nodes[stIndex].merge(nodes[left], nodes[right]);
+    }
+};
+
+
 int main(int argc, char const *argv[])
 {
-	int n,m;
-	scanf("%d",&n);
-	int a[n];
-	for (int i = 0; i < n; ++i)
-	{
-		scanf("%d",&a[i]);
-	}
-	scanf("%d",&m);
-	while(m-->0){
-		int x,y,max1,sum;
-		scanf("%d %d",&x,&y);
-		max1=0;
-		sum=0;
-		for (int i = x-1; i < y; ++i)
-		{
-			sum=max(a[i],sum+a[i]);
-			if(sum>max1)max1=sum;
-		}
-		printf("%d\n",max1);
-	}
-	else{
-	int dp[n][n];
-	for(int i=0;i<n;i++){
-		for(int j=i;j<n;j++){
-			dp[i][j]=calculate(i,j,a);
-			//cout<<dp[i][j]<<" ";
-		}
-		//cout<<endl;
-	}
-	scanf("%d",&m);
-	while(m-->0){
-		int x,y;
-		scanf("%d %d",&x,&y);
-		printf("%d\n",dp[x-1][y-1]);
-	}}
-	return 0;
-}*/
-// A utility function to get the middle index from corner indexes.
-int getMid(int s, int e) {  return s + (e -s)/2;  }
-
-int getSumUtil(int *st, int ss, int se, int qs, int qe, int index)
-{
-    // If segment of this node is a part of given range, then return the 
-    // sum of the segment
-    if (qs <= ss && qe >= se)
-        return st[index];
- 
-    // If segment of this node is outside the given range
-    if (se < qs || ss > qe)
-        return 0;
- 
-    // If a part of this segment overlaps with the given range
-    int mid = getMid(ss, se);
-    return getSumUtil(st, ss, mid, qs, qe, 2*index+1) +
-           getSumUtil(st, mid+1, se, qs, qe, 2*index+2);
-}
-
-void updateValueUtil(int *st, int ss, int se, int i, int diff, int index)
-{
-    // Base Case: If the input index lies outside the range of this segment
-    if (i < ss || i > se)
-        return;
- 
-    // If the input index is in range of this node, then update the value
-    // of the node and its children
-    st[index] = st[index] + diff;
-    if (se != ss)
-    {
-        int mid = getMid(ss, se);
-        updateValueUtil(st, ss, mid, i, diff, 2*index + 1);
-        updateValueUtil(st, mid+1, se, i, diff, 2*index + 2);
-    }
-}
-
-void updateValue(int arr[], int *st, int n, int i, int new_val)
-{
-    // Check for erroneous input index
-    if (i < 0 || i > n-1)
-    {
-        printf("Invalid Input");
-        return;
-    }
- 
-    // Get the difference between new value and old value
-    int diff = new_val - arr[i];
- 
-    // Update the value in array
-    arr[i] = new_val;
- 
-    // Update the values of nodes in segment tree
-    updateValueUtil(st, 0, n-1, i, diff, 0);
-}
- 
-// Return sum of elements in range from index qs (quey start) to
-// qe (query end).  It mainly uses getSumUtil()
-int getSum(int *st, int n, int qs, int qe)
-{
-    // Check for erroneous input values
-    if (qs < 0 || qe > n-1 || qs > qe)
-    {
-        printf("Invalid Input");
-        return -1;
-    }
- 
-    return getSumUtil(st, 0, n-1, qs, qe, 0);
-}
-
-int constructSTUtil(int arr[], int ss, int se, int *st, int si)
-{
-    if (ss == se)
-    {
-        st[si] = arr[ss];
-        //cout<<st[si]<<" "<<ss<<" "<<se<<endl;
-        return st[si];
-    }
-    int mid = getMid(ss, se);
-    int a,b;
-    a=constructSTUtil(arr, ss, mid, st, si*2+1);
-    b=constructSTUtil(arr, mid+1, se, st, si*2+2);
-    st[si] =  max(a+b,max(a,b));
-    //cout<<st[si]<<" "<<ss<<" "<<se<<endl;
-    return st[si];
-}
-
-int *constructST(int arr[], int n)
-{
-    // Allocate memory for segment tree
-    int x = (int)(ceil(log2(n))); //Height of segment tree
-    int max_size = 2*(int)pow(2, x) - 1; //Maximum size of segment tree
-    int *st = new int[max_size];
-
-    // Fill the allocated memory st
-    constructSTUtil(arr, 0, n-1, st, 0);
- 
-    // Return the constructed segment tree
-    return st;
-}
- 
-// Driver program to test above functions
-int main()
-{
-	int n,m;
-	scanf("%d",&n);
-	int a[n];
-	for (int i = 0; i < n; ++i)
-	{
-		scanf("%d",&a[i]);
-	}
-    // Build segment tree from given array
-    int *st = constructST(a, n);
-
-    scanf("%d",&m);
-    while(m-->0){
-    	int x,y;
-		scanf("%d %d",&x,&y);
-		printf("%d\n",getSum(st,n,x-1,y-1));
+    ll n,m;
+    s(n);
+    ll a[n];
+    f(i,0,n)s(a[i]);
+    SegmentTree<ll,ll> tree(a,n);
+    s(m);
+    while(m--){
+        ll x,y;
+        s(x);
+        s(y);
+        p(tree.getValue(x-1,y-1));
     }
     return 0;
 }
